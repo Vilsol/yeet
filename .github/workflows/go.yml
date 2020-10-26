@@ -22,7 +22,7 @@ jobs:
           - os: macos-latest
             file: yeet-osx-amd64
             args: --best
-            strip: true
+            strip: false
             cgo: 1
     steps:
 
