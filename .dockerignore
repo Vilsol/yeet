@@ -1,0 +1,8 @@
+*
+
+!go.mod
+!go.sum
+
+!cmd/
+!server/
+!main.go
