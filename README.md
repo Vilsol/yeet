@@ -26,5 +26,5 @@ Process finished with exit code 0
 ## Docker
 
 ```
-docker run -v /path/to/data:/www -p 8080:8080 ghcr.io/vilsol/yeet:0.1.1
+docker run -v /path/to/data:/www -p 8080:8080 ghcr.io/vilsol/yeet:0.1.2
 ```
