@@ -1,5 +1,7 @@
 FROM golang:1.15-alpine AS builder
 
+LABEL org.opencontainers.image.source https://github.com/Vilsol/yeet
+
 RUN apk add --no-cache git
 
 WORKDIR $GOPATH/src/github.com/Vilsol/yeet/
