@@ -13,6 +13,6 @@ var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Run the webserver",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return server.RunWebserver()
+		return server.Run()
 	},
 }

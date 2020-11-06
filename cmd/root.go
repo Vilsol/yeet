@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"os"
+	"time"
 )
 
 var rootCmd = &cobra.Command{
@@ -56,6 +57,12 @@ func init() {
 
 	rootCmd.PersistentFlags().StringSlice("paths", []string{"./www"}, "Paths to serve on the webserver")
 
+	rootCmd.PersistentFlags().Bool("expiry", false, "Use cache expiry")
+	rootCmd.PersistentFlags().Duration("expiry-time", time.Minute*60, "Lifetime of a cache entry")
+	rootCmd.PersistentFlags().Duration("expiry-interval", time.Minute*10, "Port to run the webserver on")
+	rootCmd.PersistentFlags().Int("expiry-memory", 128, "Max memory usage in MB")
+	rootCmd.PersistentFlags().Int("expiry-shards", 64, "Cache shard count")
+
 	_ = viper.BindPFlag("log", rootCmd.PersistentFlags().Lookup("log"))
 	_ = viper.BindPFlag("colors", rootCmd.PersistentFlags().Lookup("colors"))
 
@@ -63,4 +70,10 @@ func init() {
 	_ = viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
 
 	_ = viper.BindPFlag("paths", rootCmd.PersistentFlags().Lookup("paths"))
+
+	_ = viper.BindPFlag("expiry", rootCmd.PersistentFlags().Lookup("expiry"))
+	_ = viper.BindPFlag("expiry.time", rootCmd.PersistentFlags().Lookup("expiry-time"))
+	_ = viper.BindPFlag("expiry.interval", rootCmd.PersistentFlags().Lookup("expiry-interval"))
+	_ = viper.BindPFlag("expiry.memory", rootCmd.PersistentFlags().Lookup("expiry-memory"))
+	_ = viper.BindPFlag("expiry.shards", rootCmd.PersistentFlags().Lookup("expiry-shards"))
 }
