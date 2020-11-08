@@ -15,7 +15,7 @@ Available Commands:
 Flags:
       --colors                     Force output with colors
       --expiry                     Use cache expiry
-      --expiry-interval duration   Port to run the webserver on (default 10m0s)
+      --expiry-interval duration   Interval between cache GC's (default 10m0s)
       --expiry-memory int          Max memory usage in MB (default 128)
       --expiry-shards int          Cache shard count (default 64)
       --expiry-time duration       Lifetime of a cache entry (default 1h0m0s)

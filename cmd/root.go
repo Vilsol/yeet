@@ -61,7 +61,7 @@ func init() {
 
 	rootCmd.PersistentFlags().Bool("expiry", false, "Use cache expiry")
 	rootCmd.PersistentFlags().Duration("expiry-time", time.Minute*60, "Lifetime of a cache entry")
-	rootCmd.PersistentFlags().Duration("expiry-interval", time.Minute*10, "Port to run the webserver on")
+	rootCmd.PersistentFlags().Duration("expiry-interval", time.Minute*10, "Interval between cache GC's")
 	rootCmd.PersistentFlags().Int("expiry-memory", 128, "Max memory usage in MB")
 	rootCmd.PersistentFlags().Int("expiry-shards", 64, "Cache shard count")
 
