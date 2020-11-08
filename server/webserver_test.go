@@ -21,7 +21,7 @@ func init() {
 
 	cache = make(map[string]*CachedInstance)
 
-	if err := IndexCache(cache); err != nil {
+	if _, err := IndexCache(cache); err != nil {
 		panic(err)
 	}
 }
@@ -30,6 +30,12 @@ func benchmarkServerGet(b *testing.B, clientsCount, requestsPerConn int, expiry 
 	var handler fasthttp.RequestHandler
 
 	if expiry {
+		viper.Set("expiry", true)
+		viper.Set("expiry.shards", 64)
+		viper.Set("expiry.time", time.Minute*10)
+		viper.Set("expiry.interval", time.Minute*60)
+		viper.Set("expiry.memory", 128)
+
 		ws, err := GetExpiryWebserver(cache)
 
 		if err != nil {

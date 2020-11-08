@@ -14,13 +14,18 @@ type Webserver interface {
 func Run() error {
 	cache := make(map[string]*CachedInstance)
 
-	if err := IndexCache(cache); err != nil {
+	totalSize, err := IndexCache(cache)
+
+	if err != nil {
 		return err
 	}
 
-	log.Infof("Indexed %d files", len(cache))
+	if viper.GetBool("warmup") {
+		log.Infof("Indexed %d files with %s of memory usage", len(cache), ByteCountToHuman(totalSize))
+	} else {
+		log.Infof("Indexed %d files", len(cache))
+	}
 
-	var err error
 	var ws Webserver
 	if viper.GetBool("expiry.enabled") {
 		ws, err = GetExpiryWebserver(cache)

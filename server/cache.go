@@ -28,44 +28,89 @@ func (cache *CachedInstance) Reset() {
 	cache.GetExpiry = LoadCacheExpiry
 }
 
-func IndexCache(cache map[string]*CachedInstance) error {
+func IndexCache(cache map[string]*CachedInstance) (int64, error) {
+	totalSize := int64(0)
 	for _, dirPath := range viper.GetStringSlice("paths") {
 		cleanPath := path.Clean(dirPath)
-		if err := indexPath(cache, cleanPath); err != nil {
-			return errors.Wrap(err, "error indexing path "+cleanPath)
+		pathSize, err := indexPath(cache, cleanPath)
+		if err != nil {
+			return 0, errors.Wrap(err, "error indexing path "+cleanPath)
 		}
+		totalSize += pathSize
 	}
-	return nil
+	return totalSize, nil
 }
 
-func indexPath(cache map[string]*CachedInstance, dirPath string) error {
-	return filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+func indexPath(cache map[string]*CachedInstance, dirPath string) (int64, error) {
+	trimmed := strings.Trim(dirPath, "/")
+	toRemove := len(strings.Split(trimmed, "/"))
+
+	if trimmed == "." || trimmed == "" {
+		toRemove = 0
+	}
+
+	totalSize := int64(0)
+
+	if err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
+		filePath := path
+
 		if info.IsDir() {
-			return nil
+			indexFile := viper.GetString("index.file")
+			if indexFile != "" {
+				joined := filepath.Join(path, indexFile)
+				_, err := os.Stat(joined)
+				if err != nil && !os.IsNotExist(err) {
+					return err
+				} else if err != nil {
+					return nil
+				}
+				filePath = joined
+			} else {
+				return nil
+			}
 		}
 
+		absPath, _ := filepath.Abs(filePath)
+
 		cleanedPath := strings.ReplaceAll(filepath.Clean(path), "\\", "/")
-		cleanedPath = cleanedPath[len(dirPath)-1:]
+
+		// Remove the initial path
+		cleanedPath = strings.Join(strings.Split(cleanedPath, "/")[toRemove:], "/")
 
 		if !strings.HasPrefix(cleanedPath, "/") {
 			cleanedPath = "/" + cleanedPath
 		}
 
-		// TODO Optional storing in memory on index
-		absPath, _ := filepath.Abs(path)
-		cache[cleanedPath] = &CachedInstance{
+		log.Tracef("Indexed: %s -> %s", cleanedPath, absPath)
+
+		instance := &CachedInstance{
 			RelativePath: cleanedPath,
 			AbsolutePath: absPath,
 			Get:          LoadCache,
 			GetExpiry:    LoadCacheExpiry,
 		}
 
+		cache[cleanedPath] = instance
+
+		if viper.GetBool("warmup") {
+			if viper.GetBool("expiry") {
+				panic("expiry not supported if warmup is enabled")
+			}
+
+			instance.Get(instance)
+			totalSize += int64(len(instance.Data))
+		}
+
 		return nil
-	})
+	}); err != nil {
+		return 0, err
+	}
+
+	return totalSize, nil
 }
 
 // TODO Streaming

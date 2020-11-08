@@ -19,11 +19,6 @@ builds:
     goarm:
       - 6
       - 7
-      - 8
-    ignore:
-      - goos: linux
-        goarch: arm
-        goarm: 8
 
 archives:
   - replacements:
