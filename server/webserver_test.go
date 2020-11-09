@@ -1,6 +1,7 @@
 package server
 
 import (
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
 	"io"
@@ -14,48 +15,35 @@ import (
 
 const getRequest = "GET /webserver_test.go HTTP/1.1\r\nHost: google.com\r\n\r\n"
 
-var cache map[string]*CachedInstance
-
 func init() {
 	viper.Set("paths", []string{"."})
-
-	cache = make(map[string]*CachedInstance)
-
-	if _, err := IndexCache(cache); err != nil {
-		panic(err)
-	}
+	log.SetLevel(log.FatalLevel)
 }
 
-func benchmarkServerGet(b *testing.B, clientsCount, requestsPerConn int, expiry bool) {
-	var handler fasthttp.RequestHandler
-
+func benchmarkServerGet(b *testing.B, clientsCount, requestsPerConn int, expiry bool, watch bool) {
 	if expiry {
 		viper.Set("expiry", true)
-		viper.Set("expiry.shards", 64)
 		viper.Set("expiry.time", time.Minute*10)
 		viper.Set("expiry.interval", time.Minute*60)
-		viper.Set("expiry.memory", 128)
+	}
 
-		ws, err := GetExpiryWebserver(cache)
+	if watch {
+		viper.Set("watch", true)
+	}
 
-		if err != nil {
-			panic(err)
-		}
+	ws, err := GetWebserver()
 
-		handler = ws.HandleFastHTTP
-	} else {
-		ws := &DirectWebserver{
-			Cache: cache,
-		}
-
-		handler = ws.HandleFastHTTP
+	if err != nil {
+		panic(err)
 	}
 
 	s := &fasthttp.Server{
-		Handler:     handler,
+		Handler:     ws.HandleFastHTTP,
 		Concurrency: 16 * clientsCount,
 	}
 
+	b.ReportAllocs()
+	b.ResetTimer()
 	benchmarkServer(b, s, clientsCount, requestsPerConn, getRequest)
 }
 
@@ -199,66 +187,101 @@ func newFakeListener(requestsCount, clientsCount, requestsPerConn int, request s
 	return ln
 }
 
+// Baseline
 func BenchmarkServerGet1ReqPerConn(b *testing.B) {
-	benchmarkServerGet(b, runtime.NumCPU(), 1, false)
+	benchmarkServerGet(b, runtime.NumCPU(), 1, false, false)
 }
 
 func BenchmarkServerGet2ReqPerConn(b *testing.B) {
-	benchmarkServerGet(b, runtime.NumCPU(), 2, false)
+	benchmarkServerGet(b, runtime.NumCPU(), 2, false, false)
 }
 
 func BenchmarkServerGet10ReqPerConn(b *testing.B) {
-	benchmarkServerGet(b, runtime.NumCPU(), 10, false)
+	benchmarkServerGet(b, runtime.NumCPU(), 10, false, false)
 }
 
 func BenchmarkServerGet10KReqPerConn(b *testing.B) {
-	benchmarkServerGet(b, runtime.NumCPU(), 10000, false)
+	benchmarkServerGet(b, runtime.NumCPU(), 10000, false, false)
 }
 
 func BenchmarkServerGet1ReqPerConn10KClients(b *testing.B) {
-	benchmarkServerGet(b, 10000, 1, false)
+	benchmarkServerGet(b, 10000, 1, false, false)
 }
 
 func BenchmarkServerGet2ReqPerConn10KClients(b *testing.B) {
-	benchmarkServerGet(b, 10000, 2, false)
+	benchmarkServerGet(b, 10000, 2, false, false)
 }
 
 func BenchmarkServerGet10ReqPerConn10KClients(b *testing.B) {
-	benchmarkServerGet(b, 10000, 10, false)
+	benchmarkServerGet(b, 10000, 10, false, false)
 }
 
 func BenchmarkServerGet100ReqPerConn10KClients(b *testing.B) {
-	benchmarkServerGet(b, 10000, 100, false)
+	benchmarkServerGet(b, 10000, 100, false, false)
 }
 
+// With expiry
 func BenchmarkServerGet1ReqPerConnExpiry(b *testing.B) {
-	benchmarkServerGet(b, runtime.NumCPU(), 1, true)
+	benchmarkServerGet(b, runtime.NumCPU(), 1, true, false)
 }
 
 func BenchmarkServerGet2ReqPerConnExpiry(b *testing.B) {
-	benchmarkServerGet(b, runtime.NumCPU(), 2, true)
+	benchmarkServerGet(b, runtime.NumCPU(), 2, true, false)
 }
 
 func BenchmarkServerGet10ReqPerConnExpiry(b *testing.B) {
-	benchmarkServerGet(b, runtime.NumCPU(), 10, true)
+	benchmarkServerGet(b, runtime.NumCPU(), 10, true, false)
 }
 
 func BenchmarkServerGet10KReqPerConnExpiry(b *testing.B) {
-	benchmarkServerGet(b, runtime.NumCPU(), 10000, true)
+	benchmarkServerGet(b, runtime.NumCPU(), 10000, true, false)
 }
 
 func BenchmarkServerGet1ReqPerConn10KClientsExpiry(b *testing.B) {
-	benchmarkServerGet(b, 10000, 1, true)
+	benchmarkServerGet(b, 10000, 1, true, false)
 }
 
 func BenchmarkServerGet2ReqPerConn10KClientsExpiry(b *testing.B) {
-	benchmarkServerGet(b, 10000, 2, true)
+	benchmarkServerGet(b, 10000, 2, true, false)
 }
 
 func BenchmarkServerGet10ReqPerConn10KClientsExpiry(b *testing.B) {
-	benchmarkServerGet(b, 10000, 10, true)
+	benchmarkServerGet(b, 10000, 10, true, false)
 }
 
 func BenchmarkServerGet100ReqPerConn10KClientsExpiry(b *testing.B) {
-	benchmarkServerGet(b, 10000, 100, true)
+	benchmarkServerGet(b, 10000, 100, true, false)
+}
+
+// With watch
+func BenchmarkServerGet1ReqPerConnWatch(b *testing.B) {
+	benchmarkServerGet(b, runtime.NumCPU(), 1, false, true)
+}
+
+func BenchmarkServerGet2ReqPerConnWatch(b *testing.B) {
+	benchmarkServerGet(b, runtime.NumCPU(), 2, false, true)
+}
+
+func BenchmarkServerGet10ReqPerConnWatch(b *testing.B) {
+	benchmarkServerGet(b, runtime.NumCPU(), 10, false, true)
+}
+
+func BenchmarkServerGet10KReqPerConnWatch(b *testing.B) {
+	benchmarkServerGet(b, runtime.NumCPU(), 10000, false, true)
+}
+
+func BenchmarkServerGet1ReqPerConn10KClientsWatch(b *testing.B) {
+	benchmarkServerGet(b, 10000, 1, false, true)
+}
+
+func BenchmarkServerGet2ReqPerConn10KClientsWatch(b *testing.B) {
+	benchmarkServerGet(b, 10000, 2, false, true)
+}
+
+func BenchmarkServerGet10ReqPerConn10KClientsWatch(b *testing.B) {
+	benchmarkServerGet(b, 10000, 10, false, true)
+}
+
+func BenchmarkServerGet100ReqPerConn10KClientsWatch(b *testing.B) {
+	benchmarkServerGet(b, 10000, 100, false, true)
 }

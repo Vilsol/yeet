@@ -1,37 +1,15 @@
 package server
 
 import (
+	"github.com/Vilsol/yeet/cache"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
 	"strconv"
 )
 
-type Webserver interface {
-	HandleFastHTTP(ctx *fasthttp.RequestCtx)
-}
-
 func Run() error {
-	cache := make(map[string]*CachedInstance)
-
-	totalSize, err := IndexCache(cache)
-
-	if err != nil {
-		return err
-	}
-
-	if viper.GetBool("warmup") {
-		log.Infof("Indexed %d files with %s of memory usage", len(cache), ByteCountToHuman(totalSize))
-	} else {
-		log.Infof("Indexed %d files", len(cache))
-	}
-
-	var ws Webserver
-	if viper.GetBool("expiry.enabled") {
-		ws, err = GetExpiryWebserver(cache)
-	} else {
-		ws = GetWebserver(cache)
-	}
+	ws, err := GetWebserver()
 
 	if err != nil {
 		return err
@@ -46,4 +24,41 @@ func Run() error {
 	}
 
 	return nil
+}
+
+type Webserver struct {
+	Cache cache.Cache
+}
+
+func (h *Webserver) HandleFastHTTP(ctx *fasthttp.RequestCtx) {
+	if fileType, b := h.Cache.Get(ctx.Path()); b != nil {
+		ctx.Success(fileType, b)
+	} else {
+		ctx.SetStatusCode(404)
+	}
+}
+
+func GetWebserver() (*Webserver, error) {
+	var c cache.Cache
+	var err error
+
+	if viper.GetBool("watch") {
+		c, err = cache.NewReadWriteCache()
+	} else {
+		c, err = cache.NewReadOnlyCache()
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := c.Index(); err != nil {
+		return nil, err
+	}
+
+	ws := &Webserver{
+		Cache: c,
+	}
+
+	return ws, nil
 }
