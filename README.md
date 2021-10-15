@@ -9,6 +9,7 @@ Usage:
   yeet [command]
 
 Available Commands:
+  completion  generate the autocompletion script for the specified shell
   help        Help about any command
   serve       Run the webserver
 
@@ -18,7 +19,7 @@ Flags:
       --expiry-interval duration   Interval between cache GC's (default 10m0s)
       --expiry-time duration       Lifetime of a cache entry (default 1h0m0s)
   -h, --help                       help for yeet
-      --host string                Hostname to bind the webserver (default "0.0.0.0")
+      --host string                Hostname to bind the webserver
       --index-file string          The directory default index file (default "index.html")
       --log string                 The log level to output (default "info")
       --paths strings              Paths to serve on the webserver (default [./www])

@@ -53,7 +53,7 @@ func init() {
 	rootCmd.PersistentFlags().String("log", "info", "The log level to output")
 	rootCmd.PersistentFlags().Bool("colors", false, "Force output with colors")
 
-	rootCmd.PersistentFlags().String("host", "0.0.0.0", "Hostname to bind the webserver")
+	rootCmd.PersistentFlags().String("host", "", "Hostname to bind the webserver")
 	rootCmd.PersistentFlags().Int("port", 8080, "Port to run the webserver on")
 
 	rootCmd.PersistentFlags().StringSlice("paths", []string{"./www"}, "Paths to serve on the webserver")

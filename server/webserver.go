@@ -5,6 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
+	"net"
 	"strconv"
 )
 
@@ -17,9 +18,14 @@ func Run() error {
 
 	address := viper.GetString("host") + ":" + strconv.Itoa(viper.GetInt("port"))
 
+	ln, err := net.Listen("tcp", address)
+	if err != nil {
+		return err
+	}
+
 	log.Infof("Starting webserver on %s", address)
 
-	if err := fasthttp.ListenAndServe(address, ws.HandleFastHTTP); err != nil {
+	if err := fasthttp.Serve(ln, ws.HandleFastHTTP); err != nil {
 		return err
 	}
 
