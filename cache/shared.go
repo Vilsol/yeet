@@ -1,46 +1,47 @@
 package cache
 
 import (
+	"bytes"
+	"github.com/Vilsol/yeet/source"
 	"github.com/Vilsol/yeet/utils"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"mime"
-	"net/http"
-	"os"
+	"io"
 	"path"
-	"path/filepath"
-	"strings"
+	"reflect"
+	"time"
+	"unsafe"
 )
 
-type IndexFunc = func(absolutePath string, cleanedPath string) int64
+func indexBase(c Cache) (int64, error) {
+	return index(c.Source(), func(absolutePath string, cleanedPath string) int64 {
+		instance := &commonInstance{
+			Instance: &CachedInstance{
+				RelativePath: cleanedPath,
+				AbsolutePath: absolutePath,
+			},
+			Get: load(c),
+		}
 
-func load(instance *CachedInstance) (string, []byte) {
-	fileName := filepath.Base(instance.AbsolutePath)
-	fileType := mime.TypeByExtension(filepath.Ext(fileName))
+		// Host is not used when indexing is supported
+		c.Store(unsafeGetBytes(cleanedPath), nil, instance)
 
-	data, err := ioutil.ReadFile(instance.AbsolutePath)
-	if err != nil {
-		log.Error(errors.Wrap(err, "error reading file"))
-		return "", nil
-	}
+		if viper.GetBool("warmup") {
+			instance.Get(instance)
+			return int64(len(instance.Instance.Data))
+		}
 
-	if fileType == "" {
-		fileType = http.DetectContentType(data[:512])
-	}
-
-	log.Debugf("Loaded into cache: %s", instance.AbsolutePath)
-
-	return fileType, data
+		return 0
+	})
 }
 
-func index(f IndexFunc) (int64, error) {
+func index(source source.Source, f source.IndexFunc) (int64, error) {
 	totalSize := int64(0)
 	totalCount := int64(0)
 	for _, dirPath := range viper.GetStringSlice("paths") {
 		cleanPath := path.Clean(dirPath)
-		pathSize, pathCount, err := indexPath(cleanPath, f)
+		pathSize, pathCount, err := source.IndexPath(cleanPath, f)
 		if err != nil {
 			return 0, errors.Wrap(err, "error indexing path "+cleanPath)
 		}
@@ -49,72 +50,57 @@ func index(f IndexFunc) (int64, error) {
 	}
 
 	if viper.GetBool("warmup") {
-		log.Infof("Indexed %d files with %s of memory usage", totalCount, utils.ByteCountToHuman(totalSize))
+		log.Info().Msgf("Indexed %d files with %s of memory usage", totalCount, utils.ByteCountToHuman(totalSize))
 	} else {
-		log.Infof("Indexed %d files", totalCount)
+		log.Info().Msgf("Indexed %d files", totalCount)
 	}
 
 	return totalSize, nil
 }
 
-func indexPath(dirPath string, f IndexFunc) (int64, int64, error) {
-	totalSize := int64(0)
-	totalCount := int64(0)
+func load(c Cache) func(*commonInstance) (string, io.Reader, int) {
+	return func(instance *commonInstance) (string, io.Reader, int) {
+		hijacker := c.Source().Get(instance.Instance.AbsolutePath, nil)
 
-	if err := filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+		log.Debug().Msgf("Loaded file [%d][%s]: %s", hijacker.Size, hijacker.FileType(), instance.Instance.AbsolutePath)
 
-		filePath := path
-
-		if info.IsDir() {
-			indexFile := viper.GetString("index.file")
-			if indexFile != "" {
-				joined := filepath.Join(path, indexFile)
-				_, err := os.Stat(joined)
-				if err != nil && !os.IsNotExist(err) {
-					return err
-				} else if err != nil {
-					return nil
-				}
-				filePath = joined
-			} else {
-				return nil
+		hijacker.OnClose = func(h *utils.StreamHijacker) {
+			instance.Instance.LoadTime = time.Now()
+			instance.Instance.Data = hijacker.Buffer
+			instance.Instance.ContentType = hijacker.FileType()
+			instance.Get = func(cache *commonInstance) (string, io.Reader, int) {
+				return cache.Instance.ContentType, bytes.NewReader(cache.Instance.Data), len(cache.Instance.Data)
 			}
 		}
 
-		absPath, _ := filepath.Abs(filePath)
-		cleanedPath := cleanPath(path, dirPath)
-		totalSize += f(absPath, cleanedPath)
-		totalCount++
-
-		log.Tracef("Indexed: %s -> %s", cleanedPath, absPath)
-
-		return nil
-	}); err != nil {
-		return 0, 0, err
+		return hijacker.FileType(), hijacker, hijacker.Size
 	}
-
-	return totalSize, totalCount, nil
 }
 
-func cleanPath(path string, dirPath string) string {
-	trimmed := strings.Trim(strings.ReplaceAll(filepath.Clean(dirPath), "\\", "/"), "/")
-	toRemove := len(strings.Split(trimmed, "/"))
+func expiry(c Cache) {
+	go func(c Cache) {
+		ticker := time.NewTicker(viper.GetDuration("expiry.interval"))
+		defer ticker.Stop()
+		for range ticker.C {
+			cleanBefore := time.Now().Add(viper.GetDuration("expiry.time") * -1)
+			for keyVal := range c.Iter() {
+				if keyVal.Value.Instance.Data != nil && keyVal.Value.Instance.LoadTime.Before(cleanBefore) {
+					keyVal.Value.Get = load(c)
+					keyVal.Value.Instance.Data = nil
+					keyVal.Value.Instance.ContentType = ""
+					log.Trace().Msgf("Evicted from cache: %s", keyVal.Key)
+				}
+			}
+		}
+	}(c)
+}
 
-	if trimmed == "." || trimmed == "" {
-		toRemove = 0
-	}
+func unsafeGetBytes(s string) []byte {
+	return (*[0x7fff0000]byte)(unsafe.Pointer(
+		(*reflect.StringHeader)(unsafe.Pointer(&s)).Data),
+	)[:len(s):len(s)]
+}
 
-	cleanedPath := strings.ReplaceAll(filepath.Clean(path), "\\", "/")
-
-	// Remove the initial path
-	cleanedPath = strings.Join(strings.Split(cleanedPath, "/")[toRemove:], "/")
-
-	if !strings.HasPrefix(cleanedPath, "/") {
-		cleanedPath = "/" + cleanedPath
-	}
-
-	return cleanedPath
+func byteSliceToString(bs []byte) string {
+	return *(*string)(unsafe.Pointer(&bs))
 }

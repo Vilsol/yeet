@@ -1,34 +1,6 @@
-# Yeet
+# Yeet ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vilsol/yeet/build) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/vilsol/yeet) ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/vilsol/yeet)
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vilsol/yeet/build)
-![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/vilsol/yeet)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/vilsol/yeet)
-
-```
-Usage:
-  yeet [command]
-
-Available Commands:
-  completion  generate the autocompletion script for the specified shell
-  help        Help about any command
-  serve       Run the webserver
-
-Flags:
-      --colors                     Force output with colors
-      --expiry                     Use cache expiry
-      --expiry-interval duration   Interval between cache GC's (default 10m0s)
-      --expiry-time duration       Lifetime of a cache entry (default 1h0m0s)
-  -h, --help                       help for yeet
-      --host string                Hostname to bind the webserver
-      --index-file string          The directory default index file (default "index.html")
-      --log string                 The log level to output (default "info")
-      --paths strings              Paths to serve on the webserver (default [./www])
-      --port int                   Port to run the webserver on (default 8080)
-      --warmup                     Load all files into memory on startup
-      --watch                      Watch filesystem for changes
-
-Use "yeet [command] --help" for more information about a command.
-```
+CLI Usage: [Docs](./docs/yeet.md)
 
 ## Docker
 
@@ -62,17 +34,4 @@ BenchmarkServerGet1ReqPerConn10KClientsExpiry            8515335              13
 BenchmarkServerGet2ReqPerConn10KClientsExpiry           11266317              1060 ns/op               0 B/op          0 allocs/op
 BenchmarkServerGet10ReqPerConn10KClientsExpiry          15184057               776 ns/op               0 B/op          0 allocs/op
 BenchmarkServerGet100ReqPerConn10KClientsExpiry         16339011               714 ns/op               0 B/op          0 allocs/op
-```
-
-### With file watching
-
-```
-BenchmarkServerGet1ReqPerConnWatch                       8282121              1430 ns/op               0 B/op          0 allocs/op
-BenchmarkServerGet2ReqPerConnWatch                      11046026              1080 ns/op               0 B/op          0 allocs/op
-BenchmarkServerGet10ReqPerConnWatch                     15087688               791 ns/op               0 B/op          0 allocs/op
-BenchmarkServerGet10KReqPerConnWatch                    16619936               733 ns/op               0 B/op          0 allocs/op
-BenchmarkServerGet1ReqPerConn10KClientsWatch             8312827              1460 ns/op               0 B/op          0 allocs/op
-BenchmarkServerGet2ReqPerConn10KClientsWatch            10938738              1097 ns/op               0 B/op          0 allocs/op
-BenchmarkServerGet10ReqPerConn10KClientsWatch           14515534               811 ns/op               0 B/op          0 allocs/op
-BenchmarkServerGet100ReqPerConn10KClientsWatch          16010731               717 ns/op               0 B/op          0 allocs/op
 ```

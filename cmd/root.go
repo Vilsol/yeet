@@ -1,17 +1,20 @@
 package cmd
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io"
 	"os"
 	"time"
 )
 
-var rootCmd = &cobra.Command{
+var RootCMD = &cobra.Command{
 	Use:   "yeet",
 	Short: "yeet is an in-memory indexed static file webserver",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		viper.SetConfigName("config")
 		viper.AddConfigPath(".")
 		viper.SetEnvPrefix("yeet")
@@ -19,17 +22,34 @@ var rootCmd = &cobra.Command{
 
 		_ = viper.ReadInConfig()
 
-		level, err := log.ParseLevel(viper.GetString("log"))
-
+		level, err := zerolog.ParseLevel(viper.GetString("log"))
 		if err != nil {
 			panic(err)
 		}
 
-		log.SetFormatter(&log.TextFormatter{
-			ForceColors: viper.GetBool("colors"),
-		})
-		log.SetOutput(os.Stdout)
-		log.SetLevel(level)
+		zerolog.SetGlobalLevel(level)
+
+		writers := make([]io.Writer, 0)
+		if !viper.GetBool("quiet") {
+			writers = append(writers, zerolog.ConsoleWriter{
+				Out:        os.Stdout,
+				TimeFormat: time.RFC3339,
+			})
+		}
+
+		if viper.GetString("log-file") != "" {
+			logFile, err := os.OpenFile(viper.GetString("log-file"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+			if err != nil {
+				return errors.Wrap(err, "failed to open log file")
+			}
+
+			writers = append(writers, logFile)
+		}
+
+		log.Logger = zerolog.New(io.MultiWriter(writers...)).With().Timestamp().Logger()
+
+		return nil
 	},
 }
 
@@ -37,48 +57,24 @@ func Execute() {
 	// Allow running from explorer
 	cobra.MousetrapHelpText = ""
 
-	// Execute serve command as default
-	cmd, _, err := rootCmd.Find(os.Args[1:])
-	if (len(os.Args) <= 1 || os.Args[1] != "help") && (err != nil || cmd == rootCmd) {
-		args := append([]string{"serve"}, os.Args[1:]...)
-		rootCmd.SetArgs(args)
+	// Execute serve local command as default
+	cmd, _, err := RootCMD.Find(os.Args[1:])
+	if (len(os.Args) <= 1 || os.Args[1] != "help") && (err != nil || cmd == RootCMD) {
+		args := append([]string{"serve", "local"}, os.Args[1:]...)
+		RootCMD.SetArgs(args)
 	}
 
-	if err := rootCmd.Execute(); err != nil {
+	if err := RootCMD.Execute(); err != nil {
 		panic(err)
 	}
 }
 
 func init() {
-	rootCmd.PersistentFlags().String("log", "info", "The log level to output")
-	rootCmd.PersistentFlags().Bool("colors", false, "Force output with colors")
+	RootCMD.PersistentFlags().String("log", "info", "The log level to output")
+	RootCMD.PersistentFlags().String("log-file", "", "File to output logs to")
+	RootCMD.PersistentFlags().Bool("quiet", false, "Do not log anything to console")
 
-	rootCmd.PersistentFlags().String("host", "", "Hostname to bind the webserver")
-	rootCmd.PersistentFlags().Int("port", 8080, "Port to run the webserver on")
-
-	rootCmd.PersistentFlags().StringSlice("paths", []string{"./www"}, "Paths to serve on the webserver")
-	rootCmd.PersistentFlags().Bool("warmup", false, "Load all files into memory on startup")
-	rootCmd.PersistentFlags().Bool("watch", false, "Watch filesystem for changes")
-
-	rootCmd.PersistentFlags().Bool("expiry", false, "Use cache expiry")
-	rootCmd.PersistentFlags().Duration("expiry-time", time.Minute*60, "Lifetime of a cache entry")
-	rootCmd.PersistentFlags().Duration("expiry-interval", time.Minute*10, "Interval between cache GC's")
-
-	rootCmd.PersistentFlags().String("index-file", "index.html", "The directory default index file")
-
-	_ = viper.BindPFlag("log", rootCmd.PersistentFlags().Lookup("log"))
-	_ = viper.BindPFlag("colors", rootCmd.PersistentFlags().Lookup("colors"))
-
-	_ = viper.BindPFlag("host", rootCmd.PersistentFlags().Lookup("host"))
-	_ = viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
-
-	_ = viper.BindPFlag("paths", rootCmd.PersistentFlags().Lookup("paths"))
-	_ = viper.BindPFlag("warmup", rootCmd.PersistentFlags().Lookup("warmup"))
-	_ = viper.BindPFlag("watch", rootCmd.PersistentFlags().Lookup("watch"))
-
-	_ = viper.BindPFlag("expiry", rootCmd.PersistentFlags().Lookup("expiry"))
-	_ = viper.BindPFlag("expiry.time", rootCmd.PersistentFlags().Lookup("expiry-time"))
-	_ = viper.BindPFlag("expiry.interval", rootCmd.PersistentFlags().Lookup("expiry-interval"))
-
-	_ = viper.BindPFlag("index.file", rootCmd.PersistentFlags().Lookup("index-file"))
+	_ = viper.BindPFlag("log", RootCMD.PersistentFlags().Lookup("log"))
+	_ = viper.BindPFlag("log-file", RootCMD.PersistentFlags().Lookup("log-file"))
+	_ = viper.BindPFlag("quiet", RootCMD.PersistentFlags().Lookup("quiet"))
 }

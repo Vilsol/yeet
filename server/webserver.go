@@ -2,18 +2,16 @@ package server
 
 import (
 	"github.com/Vilsol/yeet/cache"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
 	"net"
 	"strconv"
 )
 
-func Run() error {
-	ws, err := GetWebserver()
-
-	if err != nil {
-		return err
+func Run(c cache.Cache) error {
+	ws := &Webserver{
+		Cache: c,
 	}
 
 	address := viper.GetString("host") + ":" + strconv.Itoa(viper.GetInt("port"))
@@ -23,7 +21,7 @@ func Run() error {
 		return err
 	}
 
-	log.Infof("Starting webserver on %s", address)
+	log.Info().Msgf("Starting webserver on %s", address)
 
 	if err := fasthttp.Serve(ln, ws.HandleFastHTTP); err != nil {
 		return err
@@ -37,34 +35,10 @@ type Webserver struct {
 }
 
 func (h *Webserver) HandleFastHTTP(ctx *fasthttp.RequestCtx) {
-	if fileType, b := h.Cache.Get(ctx.Path()); b != nil {
-		ctx.Success(fileType, b)
+	if fileType, stream, size := h.Cache.Get(ctx.Path(), ctx.Host()); size > 0 {
+		ctx.SetContentType(fileType)
+		ctx.SetBodyStream(stream, size)
 	} else {
 		ctx.SetStatusCode(404)
 	}
-}
-
-func GetWebserver() (*Webserver, error) {
-	var c cache.Cache
-	var err error
-
-	if viper.GetBool("watch") {
-		c, err = cache.NewReadWriteCache()
-	} else {
-		c, err = cache.NewReadOnlyCache()
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := c.Index(); err != nil {
-		return nil, err
-	}
-
-	ws := &Webserver{
-		Cache: c,
-	}
-
-	return ws, nil
 }

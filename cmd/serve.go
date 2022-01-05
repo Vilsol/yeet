@@ -1,18 +1,51 @@
 package cmd
 
 import (
-	"github.com/Vilsol/yeet/server"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"time"
 )
 
 func init() {
-	rootCmd.AddCommand(serveCmd)
+	ServeCMD.PersistentFlags().String("host", "", "Hostname to bind the webserver")
+	ServeCMD.PersistentFlags().Int("port", 8080, "Port to run the webserver on")
+
+	ServeCMD.PersistentFlags().Bool("warmup", false, "Load all files into memory on startup")
+
+	ServeCMD.PersistentFlags().Bool("expiry", false, "Use cache expiry")
+	ServeCMD.PersistentFlags().Duration("expiry-time", time.Minute*60, "Lifetime of a cache entry")
+	ServeCMD.PersistentFlags().Duration("expiry-interval", time.Minute*10, "Interval between cache GC's")
+
+	ServeCMD.PersistentFlags().String("index-file", "index.html", "The directory default index file")
+
+	ServeCMD.PersistentFlags().StringSliceP("paths", "p", []string{"./www"}, "Paths to serve on the webserver")
+	ServeCMD.PersistentFlags().BoolP("watch", "w", false, "Watch filesystem for changes")
+
+	_ = viper.BindPFlag("paths", ServeCMD.PersistentFlags().Lookup("paths"))
+	_ = viper.BindPFlag("watch", ServeCMD.PersistentFlags().Lookup("watch"))
+
+	_ = viper.BindPFlag("host", ServeCMD.PersistentFlags().Lookup("host"))
+	_ = viper.BindPFlag("port", ServeCMD.PersistentFlags().Lookup("port"))
+
+	_ = viper.BindPFlag("warmup", ServeCMD.PersistentFlags().Lookup("warmup"))
+
+	_ = viper.BindPFlag("expiry", ServeCMD.PersistentFlags().Lookup("expiry"))
+	_ = viper.BindPFlag("expiry.time", ServeCMD.PersistentFlags().Lookup("expiry-time"))
+	_ = viper.BindPFlag("expiry.interval", ServeCMD.PersistentFlags().Lookup("expiry-interval"))
+
+	_ = viper.BindPFlag("index.file", ServeCMD.PersistentFlags().Lookup("index-file"))
+
+	RootCMD.AddCommand(ServeCMD)
 }
 
-var serveCmd = &cobra.Command{
+var ServeCMD = &cobra.Command{
 	Use:   "serve",
-	Short: "Run the webserver",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		return server.Run()
+	Short: "Serve files with yeet",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if viper.GetBool("warmup") && viper.GetBool("expiry") {
+			return errors.New("expiry not supported if warmup is enabled")
+		}
+		return nil
 	},
 }
