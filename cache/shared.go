@@ -9,9 +9,7 @@ import (
 	"github.com/spf13/viper"
 	"io"
 	"path"
-	"reflect"
 	"time"
-	"unsafe"
 )
 
 func indexBase(c Cache) (int64, error) {
@@ -25,10 +23,11 @@ func indexBase(c Cache) (int64, error) {
 		}
 
 		// Host is not used when indexing is supported
-		c.Store(unsafeGetBytes(cleanedPath), nil, instance)
+		c.Store(utils.UnsafeGetBytes(cleanedPath), nil, instance)
 
 		if viper.GetBool("warmup") {
-			instance.Get(instance)
+			// Host is not used when indexing is supported
+			instance.Get(instance, nil)
 			return int64(len(instance.Instance.Data))
 		}
 
@@ -58,9 +57,13 @@ func index(source source.Source, f source.IndexFunc) (int64, error) {
 	return totalSize, nil
 }
 
-func load(c Cache) func(*commonInstance) (string, io.Reader, int) {
-	return func(instance *commonInstance) (string, io.Reader, int) {
-		hijacker := c.Source().Get(instance.Instance.AbsolutePath, nil)
+func load(c Cache) func(*commonInstance, []byte) (string, io.Reader, int) {
+	return func(instance *commonInstance, host []byte) (string, io.Reader, int) {
+		hijacker := c.Source().Get(instance.Instance.AbsolutePath, host)
+
+		if hijacker == nil {
+			return "", nil, 0
+		}
 
 		log.Debug().Msgf("Loaded file [%d][%s]: %s", hijacker.Size, hijacker.FileType(), instance.Instance.AbsolutePath)
 
@@ -68,7 +71,7 @@ func load(c Cache) func(*commonInstance) (string, io.Reader, int) {
 			instance.Instance.LoadTime = time.Now()
 			instance.Instance.Data = hijacker.Buffer
 			instance.Instance.ContentType = hijacker.FileType()
-			instance.Get = func(cache *commonInstance) (string, io.Reader, int) {
+			instance.Get = func(cache *commonInstance, _ []byte) (string, io.Reader, int) {
 				return cache.Instance.ContentType, bytes.NewReader(cache.Instance.Data), len(cache.Instance.Data)
 			}
 		}
@@ -93,14 +96,4 @@ func expiry(c Cache) {
 			}
 		}
 	}(c)
-}
-
-func unsafeGetBytes(s string) []byte {
-	return (*[0x7fff0000]byte)(unsafe.Pointer(
-		(*reflect.StringHeader)(unsafe.Pointer(&s)).Data),
-	)[:len(s):len(s)]
-}
-
-func byteSliceToString(bs []byte) string {
-	return *(*string)(unsafe.Pointer(&bs))
 }

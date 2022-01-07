@@ -8,17 +8,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
-	"mime"
-	"path/filepath"
-	"strings"
 )
 
 var _ Source = (*S3)(nil)
 
 type S3 struct {
-	S3Client  *s3.S3
-	S3Session *session.Session
-	Bucket    string
+	S3Client *s3.S3
+	Bucket   string
 }
 
 func NewS3(bucket string, key string, secret string, endpoint string, region string) (*S3, error) {
@@ -38,28 +34,13 @@ func NewS3(bucket string, key string, secret string, endpoint string, region str
 	s3Client := s3.New(newSession)
 
 	return &S3{
-		S3Client:  s3Client,
-		S3Session: newSession,
-		Bucket:    bucket,
+		S3Client: s3Client,
+		Bucket:   bucket,
 	}, nil
 }
 
-func (s S3) Get(path string, host []byte) *utils.StreamHijacker {
-	cleanedKey := strings.TrimPrefix(path, "/")
-
-	object, err := s.S3Client.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(s.Bucket),
-		Key:    aws.String(cleanedKey),
-	})
-
-	if err != nil {
-		log.Err(err).Msg("failed to get object")
-		return nil
-	}
-
-	fileType := mime.TypeByExtension(filepath.Ext(filepath.Base(path)))
-
-	return utils.NewStreamHijacker(int(*object.ContentLength), fileType, object.Body)
+func (s S3) Get(path string, _ []byte) *utils.StreamHijacker {
+	return GetS3(s.S3Client, s.Bucket, path)
 }
 
 func (s S3) IndexPath(dirPath string, f IndexFunc) (int64, int64, error) {

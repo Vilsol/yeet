@@ -1,6 +1,11 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"math"
+	"reflect"
+	"unsafe"
+)
 
 func ByteCountToHuman(b int64) string {
 	const unit = 1000
@@ -15,13 +20,16 @@ func ByteCountToHuman(b int64) string {
 	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPEZY"[exp])
 }
 
-/*
-function humanFileSize(size) {
-    if (size < 1024) return size + ' B'
-    let i = Math.floor(Math.log(size) / Math.log(1024))
-    let num = (size / Math.pow(1024, i))
-    let round = Math.round(num)
-    num = round < 10 ? num.toFixed(2) : round < 100 ? num.toFixed(1) : round
-    return `${num} ${'KMGTPEZY'[i-1]}B`
+func EstimateCuckooFilter(elementCount int64) uint {
+	return uint(math.Ceil(-1 * float64(elementCount) * math.Log(0.03) / math.Pow(math.Log(2), 2)))
 }
-*/
+
+func UnsafeGetBytes(s string) []byte {
+	return (*[0x7fff0000]byte)(unsafe.Pointer(
+		(*reflect.StringHeader)(unsafe.Pointer(&s)).Data),
+	)[:len(s):len(s)]
+}
+
+func ByteSliceToString(bs []byte) string {
+	return *(*string)(unsafe.Pointer(&bs))
+}

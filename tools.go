@@ -12,6 +12,7 @@ import (
 )
 
 //go:generate go run -tags tools tools.go
+//go:generate flatc --go -o flat flat/s3.fbs
 
 func main() {
 	err := doc.GenMarkdownTree(cmd.RootCMD, "./docs/")

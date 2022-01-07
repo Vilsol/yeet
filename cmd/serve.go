@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const botAgents = "bot|crawl|spider|external|meta|scrap|archive|discourse"
+
 func init() {
 	ServeCMD.PersistentFlags().String("host", "", "Hostname to bind the webserver")
 	ServeCMD.PersistentFlags().Int("port", 8080, "Port to run the webserver on")
@@ -22,6 +24,12 @@ func init() {
 	ServeCMD.PersistentFlags().StringSliceP("paths", "p", []string{"./www"}, "Paths to serve on the webserver")
 	ServeCMD.PersistentFlags().BoolP("watch", "w", false, "Watch filesystem for changes")
 
+	ServeCMD.PersistentFlags().String("tls-cert", "", "TLS Certificate file path")
+	ServeCMD.PersistentFlags().String("tls-key", "", "TLS Key file path")
+
+	ServeCMD.PersistentFlags().String("bot-proxy", "", "Bot proxy URL")
+	ServeCMD.PersistentFlags().String("bot-agents", botAgents, "Bot User-Agent header regex")
+
 	_ = viper.BindPFlag("paths", ServeCMD.PersistentFlags().Lookup("paths"))
 	_ = viper.BindPFlag("watch", ServeCMD.PersistentFlags().Lookup("watch"))
 
@@ -35,6 +43,12 @@ func init() {
 	_ = viper.BindPFlag("expiry.interval", ServeCMD.PersistentFlags().Lookup("expiry-interval"))
 
 	_ = viper.BindPFlag("index.file", ServeCMD.PersistentFlags().Lookup("index-file"))
+
+	_ = viper.BindPFlag("tls.cert", ServeCMD.PersistentFlags().Lookup("tls-cert"))
+	_ = viper.BindPFlag("tls.key", ServeCMD.PersistentFlags().Lookup("tls-key"))
+
+	_ = viper.BindPFlag("bot.proxy", ServeCMD.PersistentFlags().Lookup("bot-proxy"))
+	_ = viper.BindPFlag("bot.agents", ServeCMD.PersistentFlags().Lookup("bot-agents"))
 
 	RootCMD.AddCommand(ServeCMD)
 }

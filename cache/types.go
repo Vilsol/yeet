@@ -16,7 +16,7 @@ type CachedInstance struct {
 
 type commonInstance struct {
 	Instance *CachedInstance
-	Get      func(instance *commonInstance) (string, io.Reader, int)
+	Get      func(instance *commonInstance, host []byte) (string, io.Reader, int)
 }
 
 type KeyValue struct {

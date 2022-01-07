@@ -2,6 +2,7 @@ package cache
 
 import (
 	"github.com/Vilsol/yeet/source"
+	"github.com/Vilsol/yeet/utils"
 	"github.com/cornelk/hashmap"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -61,7 +62,7 @@ func (c *HashMapCache) Index() (int64, error) {
 					c.data.Set(event.CleanPath, instance)
 
 					if viper.GetBool("warmup") {
-						instance.Get(instance)
+						instance.Get(instance, nil)
 					}
 
 					log.Trace().Msgf("Added to cache: %s", event.CleanPath)
@@ -92,11 +93,25 @@ func (c *HashMapCache) Store(path []byte, host []byte, instance *commonInstance)
 func (c *HashMapCache) Get(path []byte, host []byte) (string, io.Reader, int) {
 	if !c.hosts {
 		if instance, ok := c.data.Get(path); ok {
-			return instance.(*commonInstance).Get(instance.(*commonInstance))
+			return instance.(*commonInstance).Get(instance.(*commonInstance), nil)
 		}
 	} else {
-		if instance, ok := c.data.Get(append(host, path...)); ok {
-			return instance.(*commonInstance).Get(instance.(*commonInstance))
+		key := append(host, path...)
+		instance, ok := c.data.Get(key)
+		if !ok {
+			pathStr := utils.ByteSliceToString(path)
+			instance = &commonInstance{
+				Instance: &CachedInstance{
+					RelativePath: pathStr,
+					AbsolutePath: pathStr,
+				},
+				Get: load(c),
+			}
+			c.data.Set(key, instance)
+		}
+
+		if instance != nil {
+			return instance.(*commonInstance).Get(instance.(*commonInstance), host)
 		}
 	}
 

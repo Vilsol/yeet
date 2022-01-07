@@ -1,20 +1,20 @@
-## yeet serve s3
+## yeet serve s3-redis
 
-Serve an S3 bucket
+Serve Redis-backed S3 buckets
 
 ```
-yeet serve s3 [flags]
+yeet serve s3-redis [flags]
 ```
 
 ### Options
 
 ```
-  -b, --bucket string     S3 Bucket to fetch from
-  -e, --endpoint string   S3 Endpoint
-  -h, --help              help for s3
-  -k, --key string        S3 Key of the account
-      --region string     S3 Region of the bucket (default "us-west-002")
-  -s, --secret string     S3 Secret of the account
+  -a, --address string   host:port address of Redis (default "localhost:6379")
+      --db int           DB of Redis
+  -h, --help             help for s3-redis
+      --network string   The network type, either tcp or unix (default "tcp")
+      --pass string      Password of Redis
+      --user string      Username of Redis
 ```
 
 ### Options inherited from parent commands

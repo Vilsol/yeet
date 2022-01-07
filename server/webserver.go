@@ -2,10 +2,15 @@ package server
 
 import (
 	"github.com/Vilsol/yeet/cache"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
 	"net"
+	"net/http/httputil"
+	"net/url"
+	"regexp"
 	"strconv"
 )
 
@@ -21,13 +26,31 @@ func Run(c cache.Cache) error {
 		return err
 	}
 
-	log.Info().Msgf("Starting webserver on %s", address)
+	handler := ws.HandleFastHTTP
+	if viper.GetString("bot.proxy") != "" {
+		r, err := regexp.Compile(viper.GetString("bot.agents"))
+		if err != nil {
+			return errors.Wrap(err, "failed to compile bot proxy regex")
+		}
 
-	if err := fasthttp.Serve(ln, ws.HandleFastHTTP); err != nil {
-		return err
+		proxy, err := url.Parse(viper.GetString("bot.proxy"))
+		if err != nil {
+			return errors.Wrap(err, "failed to parse bot proxy url")
+		}
+
+		reverseProxy := httputil.NewSingleHostReverseProxy(proxy)
+		proxyHandler := fasthttpadaptor.NewFastHTTPHandler(reverseProxy)
+
+		handler = ws.HandleFastHTTPWithBotProxy(r, proxyHandler)
 	}
 
-	return nil
+	if viper.GetString("tls.cert") != "" && viper.GetString("tls.key") != "" {
+		log.Info().Msgf("Starting webserver with TLS on %s", address)
+		return fasthttp.ServeTLS(ln, viper.GetString("tls.cert"), viper.GetString("tls.key"), handler)
+	}
+
+	log.Info().Msgf("Starting webserver on %s", address)
+	return fasthttp.Serve(ln, handler)
 }
 
 type Webserver struct {
@@ -40,5 +63,15 @@ func (h *Webserver) HandleFastHTTP(ctx *fasthttp.RequestCtx) {
 		ctx.SetBodyStream(stream, size)
 	} else {
 		ctx.SetStatusCode(404)
+	}
+}
+
+func (h *Webserver) HandleFastHTTPWithBotProxy(botHeaderRegex *regexp.Regexp, proxy fasthttp.RequestHandler) func(ctx *fasthttp.RequestCtx) {
+	return func(ctx *fasthttp.RequestCtx) {
+		if ctx.UserAgent() == nil || !botHeaderRegex.Match(ctx.UserAgent()) {
+			h.HandleFastHTTP(ctx)
+		} else {
+			proxy(ctx)
+		}
 	}
 }

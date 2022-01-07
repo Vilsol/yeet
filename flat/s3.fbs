@@ -1,0 +1,10 @@
+namespace yeet;
+
+table S3 {
+    filter: string;
+    bucket: string;
+    key: string;
+    secret: string;
+    endpoint: string;
+    region: string;
+}

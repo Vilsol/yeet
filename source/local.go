@@ -2,7 +2,6 @@ package source
 
 import (
 	"github.com/Vilsol/yeet/utils"
-	"github.com/bits-and-blooms/bloom/v3"
 	"github.com/fsnotify/fsnotify"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
@@ -38,7 +37,6 @@ func (l Local) Get(path string, host []byte) *utils.StreamHijacker {
 func (l Local) IndexPath(dir string, f IndexFunc) (int64, int64, error) {
 	totalSize := int64(0)
 	totalCount := int64(0)
-	fileNames := make([]string, 0)
 
 	if err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -70,19 +68,10 @@ func (l Local) IndexPath(dir string, f IndexFunc) (int64, int64, error) {
 
 		log.Trace().Msgf("Indexed: %s -> %s", cleanedPath, absPath)
 
-		fileNames = append(fileNames, cleanedPath)
-
 		return nil
 	}); err != nil {
 		return 0, 0, err
 	}
-
-	filter := bloom.NewWithEstimates(uint(totalCount), 0.001)
-	for _, fileName := range fileNames {
-		filter.AddString(fileName)
-	}
-
-	log.Trace().Msgf("Created bloom filter of size %d and hash count %d", filter.Cap(), filter.K())
 
 	return totalSize, totalCount, nil
 }

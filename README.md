@@ -2,6 +2,16 @@
 
 CLI Usage: [Docs](./docs/yeet.md)
 
+## Features
+
+* Fast
+* 0 setup
+* Local fs support
+* S3 support
+* Redis-backed S3 support
+* Cuckoo filter for Redis-S3
+* File watching (local only)
+
 ## Docker
 
 ```
