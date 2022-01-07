@@ -16,7 +16,7 @@ type CachedInstance struct {
 
 type commonInstance struct {
 	Instance *CachedInstance
-	Get      func(instance *commonInstance, host []byte) (string, io.Reader, int)
+	Get      func(instance *commonInstance, host []byte) (string, io.Reader, int, bool)
 }
 
 type KeyValue struct {
@@ -26,7 +26,7 @@ type KeyValue struct {
 
 type Cache interface {
 	Index() (int64, error)
-	Get(path []byte, host []byte) (string, io.Reader, int)
+	Get(path []byte, host []byte) (string, io.Reader, int, bool)
 	Source() source.Source
 	Iter() <-chan KeyValue
 	Store(path []byte, host []byte, instance *commonInstance)

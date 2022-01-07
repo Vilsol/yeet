@@ -16,22 +16,22 @@ var _ Source = (*Local)(nil)
 type Local struct {
 }
 
-func (l Local) Get(path string, host []byte) *utils.StreamHijacker {
+func (l Local) Get(path string, host []byte) (*utils.StreamHijacker, bool) {
 	file, err := os.OpenFile(path, os.O_RDONLY, 0664)
 	if err != nil {
 		log.Err(err).Msg("error reading file")
-		return nil
+		return nil, true
 	}
 
 	stat, err := file.Stat()
 	if err != nil {
 		log.Err(err).Msg("error reading file")
-		return nil
+		return nil, true
 	}
 
 	fileType := mime.TypeByExtension(filepath.Ext(filepath.Base(path)))
 
-	return utils.NewStreamHijacker(int(stat.Size()), fileType, file)
+	return utils.NewStreamHijacker(int(stat.Size()), fileType, file), false
 }
 
 func (l Local) IndexPath(dir string, f IndexFunc) (int64, int64, error) {

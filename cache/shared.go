@@ -57,12 +57,12 @@ func index(source source.Source, f source.IndexFunc) (int64, error) {
 	return totalSize, nil
 }
 
-func load(c Cache) func(*commonInstance, []byte) (string, io.Reader, int) {
-	return func(instance *commonInstance, host []byte) (string, io.Reader, int) {
-		hijacker := c.Source().Get(instance.Instance.AbsolutePath, host)
+func load(c Cache) func(*commonInstance, []byte) (string, io.Reader, int, bool) {
+	return func(instance *commonInstance, host []byte) (string, io.Reader, int, bool) {
+		hijacker, failed := c.Source().Get(instance.Instance.AbsolutePath, host)
 
 		if hijacker == nil {
-			return "", nil, 0
+			return "", nil, 0, failed
 		}
 
 		log.Debug().Msgf("Loaded file [%d][%s]: %s", hijacker.Size, hijacker.FileType(), instance.Instance.AbsolutePath)
@@ -71,12 +71,12 @@ func load(c Cache) func(*commonInstance, []byte) (string, io.Reader, int) {
 			instance.Instance.LoadTime = time.Now()
 			instance.Instance.Data = hijacker.Buffer
 			instance.Instance.ContentType = hijacker.FileType()
-			instance.Get = func(cache *commonInstance, _ []byte) (string, io.Reader, int) {
-				return cache.Instance.ContentType, bytes.NewReader(cache.Instance.Data), len(cache.Instance.Data)
+			instance.Get = func(cache *commonInstance, _ []byte) (string, io.Reader, int, bool) {
+				return cache.Instance.ContentType, bytes.NewReader(cache.Instance.Data), len(cache.Instance.Data), false
 			}
 		}
 
-		return hijacker.FileType(), hijacker, hijacker.Size
+		return hijacker.FileType(), hijacker, hijacker.Size, false
 	}
 }
 

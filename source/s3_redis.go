@@ -46,11 +46,11 @@ func NewS3Redis(network string, address string, username string, password string
 	}, nil
 }
 
-func (s S3Redis) Get(path string, host []byte) *utils.StreamHijacker {
+func (s S3Redis) Get(path string, host []byte) (*utils.StreamHijacker, bool) {
 	var s3Wrapper *S3Wrapper
 
 	if host == nil {
-		return nil
+		return nil, true
 	}
 
 	if instance, ok := s.CredentialCache.Get(utils.ByteSliceToString(host)); ok {
@@ -60,11 +60,11 @@ func (s S3Redis) Get(path string, host []byte) *utils.StreamHijacker {
 		if get.Err() != nil {
 			if errors.Is(get.Err(), redis.Nil) {
 				log.Warn().Str("host", utils.ByteSliceToString(host)).Msg("no credentials found")
-				return nil
+				return nil, true
 			}
 
 			log.Error().Err(get.Err()).Msg("failed to get credentials")
-			return nil
+			return nil, true
 		}
 
 		s3Flat := yeet.GetRootAsS3(utils.UnsafeGetBytes(get.Val()), 0)
@@ -79,13 +79,13 @@ func (s S3Redis) Get(path string, host []byte) *utils.StreamHijacker {
 
 		if err != nil {
 			log.Err(err).Msg("failed to create new S3 session")
-			return nil
+			return nil, true
 		}
 
 		cf, err := cuckoo.Decode(s3Flat.Filter())
 		if err != nil {
 			log.Err(err).Msg("failed to decode filter")
-			return nil
+			return nil, true
 		}
 
 		s3Wrapper = &S3Wrapper{
@@ -100,7 +100,7 @@ func (s S3Redis) Get(path string, host []byte) *utils.StreamHijacker {
 		return GetS3(s3Wrapper.S3Client, s3Wrapper.Bucket, path)
 	}
 
-	return nil
+	return nil, false
 }
 
 func (s S3Redis) IndexPath(_ string, _ IndexFunc) (int64, int64, error) {

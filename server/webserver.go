@@ -58,11 +58,16 @@ type Webserver struct {
 }
 
 func (h *Webserver) HandleFastHTTP(ctx *fasthttp.RequestCtx) {
-	if fileType, stream, size := h.Cache.Get(ctx.Path(), ctx.Host()); size > 0 {
+	fileType, stream, size, failed := h.Cache.Get(ctx.Path(), ctx.Host())
+	if size > 0 {
 		ctx.SetContentType(fileType)
 		ctx.SetBodyStream(stream, size)
 	} else {
-		ctx.SetStatusCode(404)
+		if failed {
+			ctx.SetStatusCode(500)
+		} else {
+			ctx.SetStatusCode(404)
+		}
 	}
 }
 

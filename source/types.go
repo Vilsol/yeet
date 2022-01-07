@@ -7,7 +7,7 @@ import (
 type IndexFunc = func(absolutePath string, cleanedPath string) int64
 
 type Source interface {
-	Get(path string, host []byte) *utils.StreamHijacker
+	Get(path string, host []byte) (*utils.StreamHijacker, bool)
 	IndexPath(dir string, f IndexFunc) (int64, int64, error)
 	Watch() (<-chan WatchEvent, error)
 }

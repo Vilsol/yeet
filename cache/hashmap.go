@@ -90,7 +90,7 @@ func (c *HashMapCache) Store(path []byte, host []byte, instance *commonInstance)
 	}
 }
 
-func (c *HashMapCache) Get(path []byte, host []byte) (string, io.Reader, int) {
+func (c *HashMapCache) Get(path []byte, host []byte) (string, io.Reader, int, bool) {
 	if !c.hosts {
 		if instance, ok := c.data.Get(path); ok {
 			return instance.(*commonInstance).Get(instance.(*commonInstance), nil)
@@ -115,7 +115,7 @@ func (c *HashMapCache) Get(path []byte, host []byte) (string, io.Reader, int) {
 		}
 	}
 
-	return "", nil, 0
+	return "", nil, 0, false
 }
 
 func (c *HashMapCache) Source() source.Source {

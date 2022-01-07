@@ -39,7 +39,7 @@ func NewS3(bucket string, key string, secret string, endpoint string, region str
 	}, nil
 }
 
-func (s S3) Get(path string, _ []byte) *utils.StreamHijacker {
+func (s S3) Get(path string, _ []byte) (*utils.StreamHijacker, bool) {
 	return GetS3(s.S3Client, s.Bucket, path)
 }
 

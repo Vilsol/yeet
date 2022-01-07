@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-func GetS3(client *s3.S3, bucket string, path string) *utils.StreamHijacker {
+func GetS3(client *s3.S3, bucket string, path string) (*utils.StreamHijacker, bool) {
 	cleanedKey := strings.TrimPrefix(path, "/")
 
 	object, err := client.GetObject(&s3.GetObjectInput{
@@ -20,10 +20,10 @@ func GetS3(client *s3.S3, bucket string, path string) *utils.StreamHijacker {
 
 	if err != nil {
 		log.Err(err).Msg("failed to get object")
-		return nil
+		return nil, true
 	}
 
 	fileType := mime.TypeByExtension(filepath.Ext(filepath.Base(path)))
 
-	return utils.NewStreamHijacker(int(*object.ContentLength), fileType, object.Body)
+	return utils.NewStreamHijacker(int(*object.ContentLength), fileType, object.Body), false
 }
