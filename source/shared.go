@@ -6,7 +6,7 @@ import (
 )
 
 func cleanPath(path string, dirPath string) string {
-	trimmed := strings.Trim(strings.ReplaceAll(filepath.Clean(dirPath), "\\", "/"), "/")
+	trimmed := strings.ReplaceAll(filepath.Clean(dirPath), "\\", "/")
 	toRemove := len(strings.Split(trimmed, "/"))
 
 	if trimmed == "." || trimmed == "" {
