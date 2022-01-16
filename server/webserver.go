@@ -32,7 +32,7 @@ func Run(c cache.Cache) error {
 
 	handler := ws.HandleFastHTTP
 	if viper.GetString("bot.proxy") != "" {
-		r, err := regexp.Compile(viper.GetString("bot.agents"))
+		r, err := regexp.Compile(`(?i)` + viper.GetString("bot.agents"))
 		if err != nil {
 			return errors.Wrap(err, "failed to compile bot proxy regex")
 		}
