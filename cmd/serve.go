@@ -30,6 +30,8 @@ func init() {
 	ServeCMD.PersistentFlags().String("bot-proxy", "", "Bot proxy URL")
 	ServeCMD.PersistentFlags().String("bot-agents", botAgents, "Bot User-Agent header regex")
 
+	ServeCMD.PersistentFlags().Bool("404-index", false, "Redirect any 404 to the index file")
+
 	_ = viper.BindPFlag("paths", ServeCMD.PersistentFlags().Lookup("paths"))
 	_ = viper.BindPFlag("watch", ServeCMD.PersistentFlags().Lookup("watch"))
 
@@ -49,6 +51,8 @@ func init() {
 
 	_ = viper.BindPFlag("bot.proxy", ServeCMD.PersistentFlags().Lookup("bot-proxy"))
 	_ = viper.BindPFlag("bot.agents", ServeCMD.PersistentFlags().Lookup("bot-agents"))
+
+	_ = viper.BindPFlag("404-index", ServeCMD.PersistentFlags().Lookup("404-index"))
 
 	RootCMD.AddCommand(ServeCMD)
 }

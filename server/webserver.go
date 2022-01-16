@@ -19,6 +19,10 @@ func Run(c cache.Cache) error {
 		Cache: c,
 	}
 
+	if viper.GetBool("404-index") {
+		ws.Index404 = []byte("/" + viper.GetString("index-file"))
+	}
+
 	address := viper.GetString("host") + ":" + strconv.Itoa(viper.GetInt("port"))
 
 	ln, err := net.Listen("tcp", address)
@@ -54,7 +58,8 @@ func Run(c cache.Cache) error {
 }
 
 type Webserver struct {
-	Cache cache.Cache
+	Cache    cache.Cache
+	Index404 []byte
 }
 
 func (h *Webserver) HandleFastHTTP(ctx *fasthttp.RequestCtx) {
@@ -62,13 +67,27 @@ func (h *Webserver) HandleFastHTTP(ctx *fasthttp.RequestCtx) {
 	if size > 0 {
 		ctx.SetContentType(fileType)
 		ctx.SetBodyStream(stream, size)
-	} else {
-		if failed {
+		return
+	}
+
+	if failed {
+		ctx.SetStatusCode(500)
+		return
+	}
+
+	if h.Index404 != nil {
+		fileType, stream, size, failed := h.Cache.Get(h.Index404, ctx.Host())
+		if size > 0 {
+			ctx.SetContentType(fileType)
+			ctx.SetBodyStream(stream, size)
+			return
+		} else if failed {
 			ctx.SetStatusCode(500)
-		} else {
-			ctx.SetStatusCode(404)
+			return
 		}
 	}
+
+	ctx.SetStatusCode(404)
 }
 
 func (h *Webserver) HandleFastHTTPWithBotProxy(botHeaderRegex *regexp.Regexp, proxy fasthttp.RequestHandler) func(ctx *fasthttp.RequestCtx) {
