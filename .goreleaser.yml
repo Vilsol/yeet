@@ -44,29 +44,29 @@ changelog:
 
 dockers:
   - image_templates:
-      - "ghcr.io/vilsol/yeet:{{ .Tag }}-amd64"
-      - "ghcr.io/vilsol/yeet:v{{ .Major }}-amd64"
-      - "ghcr.io/vilsol/yeet:v{{ .Major }}.{{ .Minor }}-amd64"
-      - "ghcr.io/vilsol/yeet:latest-amd64"
+      - "ghcr.io/{{ .Author }}/yeet:{{ .Tag }}-amd64"
+      - "ghcr.io/{{ .Author }}/yeet:v{{ .Major }}-amd64"
+      - "ghcr.io/{{ .Author }}/yeet:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "ghcr.io/{{ .Author }}/yeet:latest-amd64"
     use: buildx
     build_flag_templates:
       - "--pull"
       - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
       
   - image_templates:
-      - "ghcr.io/vilsol/yeet:{{ .Tag }}-arm64v8"
-      - "ghcr.io/vilsol/yeet:v{{ .Major }}-arm64v8"
-      - "ghcr.io/vilsol/yeet:v{{ .Major }}.{{ .Minor }}-arm64v8"
-      - "ghcr.io/vilsol/yeet:latest-arm64v8"
+      - "ghcr.io/{{ .Author }}/yeet:{{ .Tag }}-arm64v8"
+      - "ghcr.io/{{ .Author }}/yeet:v{{ .Major }}-arm64v8"
+      - "ghcr.io/{{ .Author }}/yeet:v{{ .Major }}.{{ .Minor }}-arm64v8"
+      - "ghcr.io/{{ .Author }}/yeet:latest-arm64v8"
     use: buildx
     build_flag_templates:
       - "--pull"
       - "--platform=linux/arm64/v8"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
