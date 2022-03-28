@@ -44,10 +44,10 @@ changelog:
 
 dockers:
   - image_templates:
-      - "ghcr.io/{{ .ProjectName }}:{{ .Tag }}-amd64"
-      - "ghcr.io/{{ .ProjectName }}:v{{ .Major }}-amd64"
-      - "ghcr.io/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
-      - "ghcr.io/{{ .ProjectName }}:latest-amd64"
+      - "ghcr.io/AstroFloof/{{ .ProjectName }}:{{ .Tag }}-amd64"
+      - "ghcr.io/AstroFloof/{{ .ProjectName }}:v{{ .Major }}-amd64"
+      - "ghcr.io/AstroFloof/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-amd64"
+      - "ghcr.io/AstroFloof/{{ .ProjectName }}:latest-amd64"
     use: buildx
     build_flag_templates:
       - "--pull"
@@ -58,10 +58,10 @@ dockers:
       - "--label=org.opencontainers.image.version={{ .Version }}"
       
   - image_templates:
-      - "ghcr.io/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
-      - "ghcr.io/{{ .ProjectName }}:v{{ .Major }}-arm64v8"
-      - "ghcr.io/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-arm64v8"
-      - "ghcr.io/{{ .ProjectName }}:latest-arm64v8"
+      - "ghcr.io/AstroFloof/{{ .ProjectName }}:{{ .Tag }}-arm64v8"
+      - "ghcr.io/AstroFloof/{{ .ProjectName }}:v{{ .Major }}-arm64v8"
+      - "ghcr.io/AstroFloof/{{ .ProjectName }}:v{{ .Major }}.{{ .Minor }}-arm64v8"
+      - "ghcr.io/AstroFloof/{{ .ProjectName }}:latest-arm64v8"
     use: buildx
     build_flag_templates:
       - "--pull"
