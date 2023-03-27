@@ -19,7 +19,9 @@ func Run(c cache.Cache) error {
 		Cache: c,
 	}
 
-	if viper.GetBool("404-index") {
+	if viper.GetString("404-fallback") != "" {
+		ws.Index404 = []byte("/" + viper.GetString("404-fallback"))
+	} else if viper.GetBool("404-index") {
 		ws.Index404 = []byte("/" + viper.GetString("index-file"))
 	}
 
