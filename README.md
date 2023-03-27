@@ -1,4 +1,4 @@
-# Yeet ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/vilsol/yeet/build) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/vilsol/yeet) ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/vilsol/yeet)
+# Yeet [![build](https://github.com/Vilsol/yeet/actions/workflows/build.yml/badge.svg)](https://github.com/Vilsol/yeet/actions/workflows/build.yml) ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/vilsol/yeet) ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/vilsol/yeet)
 
 CLI Usage: [Docs](./docs/yeet.md)
 
