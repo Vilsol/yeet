@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"time"
 )
 
 func Run(c cache.Cache) error {
@@ -46,8 +47,9 @@ func Run(c cache.Cache) error {
 
 		reverseProxy := httputil.NewSingleHostReverseProxy(proxy)
 		proxyHandler := fasthttpadaptor.NewFastHTTPHandler(reverseProxy)
+		timeoutHandler := fasthttp.TimeoutHandler(proxyHandler, time.Minute, "connection timed out")
 
-		handler = ws.HandleFastHTTPWithBotProxy(r, proxyHandler)
+		handler = ws.HandleFastHTTPWithBotProxy(r, timeoutHandler)
 	}
 
 	if viper.GetString("tls.cert") != "" && viper.GetString("tls.key") != "" {
