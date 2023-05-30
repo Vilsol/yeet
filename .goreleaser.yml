@@ -42,15 +42,15 @@ changelog:
       - '^docs:'
       - '^test:'
 
-dockers:
-  - image_templates:
-      - "ghcr.io/vilsol/yeet:{{ .Tag }}"
-      - "ghcr.io/vilsol/yeet:v{{ .Major }}"
-      - "ghcr.io/vilsol/yeet:v{{ .Major }}.{{ .Minor }}"
-      - "ghcr.io/vilsol/yeet:latest"
-    build_flag_templates:
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.title={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
+kos:
+  - repository: ghcr.io/vilsol/yeet
+    tags:
+      - "{{ .Tag }}"
+      - "v{{ .Major }}"
+      - "v{{ .Major }}.{{ .Minor }}"
+      - "latest"
+    bare: true
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      - linux/armv7
